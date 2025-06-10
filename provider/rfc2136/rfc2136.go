@@ -195,7 +195,7 @@ OuterLoop:
 			rrValues = (rr.(*dns.TXT).Txt)
 			rrType = "TXT"
 		case dns.TypeNS:
-			rrValues = []string{rr.(*dns.NS).Ns}
+			rrValues = []string{strings.TrimSuffix(rr.(*dns.NS).Ns, ".")}
 			rrType = "NS"
 		case dns.TypePTR:
 			rrValues = []string{rr.(*dns.PTR).Ptr}
@@ -335,7 +335,7 @@ func (r rfc2136Provider) ApplyChanges(ctx context.Context, changes *plan.Changes
 
 			r.AddRecord(m[zone], ep)
 
-			if r.createPTR && (ep.RecordType == "A" || ep.RecordType == "AAAA") {
+			if r.createPTR && (ep.RecordType == "A" || ep.RecordType == "AAAA" || ep.RecordType == "NS") {
 				r.AddReverseRecord(ep.Targets[0], ep.DNSName)
 			}
 		}
@@ -373,7 +373,7 @@ func (r rfc2136Provider) ApplyChanges(ctx context.Context, changes *plan.Changes
 			m[zone].SetUpdate(zone)
 
 			r.UpdateRecord(m[zone], changes.UpdateOld[i], ep)
-			if r.createPTR && (ep.RecordType == "A" || ep.RecordType == "AAAA") {
+			if r.createPTR && (ep.RecordType == "A" || ep.RecordType == "AAAA" || ep.RecordType == "NS") {
 				r.RemoveReverseRecord(changes.UpdateOld[i].Targets[0], ep.DNSName)
 				r.AddReverseRecord(ep.Targets[0], ep.DNSName)
 			}
@@ -411,7 +411,7 @@ func (r rfc2136Provider) ApplyChanges(ctx context.Context, changes *plan.Changes
 			m[zone].SetUpdate(zone)
 
 			r.RemoveRecord(m[zone], ep)
-			if r.createPTR && (ep.RecordType == "A" || ep.RecordType == "AAAA") {
+			if r.createPTR && (ep.RecordType == "A" || ep.RecordType == "AAAA" || ep.RecordType == "NS") {
 				r.RemoveReverseRecord(ep.Targets[0], ep.DNSName)
 			}
 		}

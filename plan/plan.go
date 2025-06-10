@@ -221,6 +221,10 @@ func (p *Plan) Calculate() *Plan {
 				if records.current != nil && len(records.candidates) > 0 {
 					update := t.resolver.ResolveUpdate(records.current, records.candidates)
 
+					if records.current.RecordType == endpoint.RecordTypeNS {
+						mergeNSRecords(records.current, update)
+					}
+
 					if shouldUpdateTTL(update, records.current) || targetChanged(update, records.current) || p.shouldUpdateProviderSpecific(update, records.current) {
 						inheritOwner(records.current, update)
 						changes.UpdateNew = append(changes.UpdateNew, update)
@@ -265,7 +269,7 @@ func (p *Plan) Calculate() *Plan {
 		Current:        p.Current,
 		Desired:        p.Desired,
 		Changes:        changes,
-		ManagedRecords: []string{endpoint.RecordTypeA, endpoint.RecordTypeAAAA, endpoint.RecordTypeCNAME},
+		ManagedRecords: []string{endpoint.RecordTypeA, endpoint.RecordTypeAAAA, endpoint.RecordTypeCNAME, endpoint.RecordTypeNS},
 	}
 
 	return plan
@@ -279,6 +283,26 @@ func inheritOwner(from, to *endpoint.Endpoint) {
 		from.Labels = map[string]string{}
 	}
 	to.Labels[endpoint.OwnerLabelKey] = from.Labels[endpoint.OwnerLabelKey]
+}
+
+func mergeNSRecords(current, candidat *endpoint.Endpoint) {
+	targetNS := endpoint.Targets{}
+	currentNS := map[string]struct{}{}
+
+	for _, ns := range current.Targets {
+		n := strings.TrimSuffix(ns, ".")
+		currentNS[n] = struct{}{}
+		targetNS = append(targetNS, n)
+	}
+
+	for _, ns := range candidat.Targets {
+		n := strings.TrimSuffix(ns, ".")
+		if _, ok := currentNS[n]; !ok {
+			targetNS = append(targetNS, n)
+		}
+	}
+
+	candidat.Targets = targetNS
 }
 
 func targetChanged(desired, current *endpoint.Endpoint) bool {

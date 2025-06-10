@@ -85,6 +85,7 @@ func main() {
 		log.SetFormatter(&log.JSONFormatter{})
 	}
 	log.Infof("config: %s", cfg)
+	log.Infof("version: %s", externaldns.Version)
 
 	if err := validation.ValidateConfig(cfg); err != nil {
 		log.Fatalf("config validation failed: %v", err)
